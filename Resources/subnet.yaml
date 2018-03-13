@@ -1,0 +1,807 @@
+#Created by: Aleksandr Melnichenko [Cloud Solutions team]
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Stack for VPCs,Subnets,IG,NATs,EIPs,Route Tables,Tags, and necessary associations
+Parameters:
+  AccountName:
+    Description: Please enter desired account name. It will be used as part of a Tag everywhere.
+    Type: String
+
+  myVPCCIDRBlock:
+    Type: String
+    Default: "10.0.0.0/16"
+    Description: My VPC CIDR Block
+
+  proddbzoneBCIDRBlock:
+    Type: String
+    Default: "10.0.1.0/26"
+    Description: prod-db-zoneB CIDR Block
+
+  proddbzoneCCIDRBlock:
+    Type: String
+    Default: "10.0.1.64/26"
+    Description: prod-db-zoneC CIDR Block
+
+  proddbzoneDCIDRBlock:
+    Type: String
+    Default: "10.0.1.128/26"
+    Description: prod-db-zoneD CIDR Block
+
+  proddbzoneECIDRBlock:
+    Type: String
+    Default: "10.0.1.192/26"
+    Description: prod-db-zoneE CIDR Block
+
+  proddmzpubliczoneBCIDRBlock:
+    Type: String
+    Default: "10.0.10.0/24"
+    Description: prod-dmz-public-zoneB CIDR Block
+
+  proddmzpubliczoneCCIDRBlock:
+    Type: String
+    Default: "10.0.12.0/24"
+    Description: prod-dmz-public-zoneC CIDR Block
+
+  prodwsprivatezoneBCIDRBlock:
+    Type: String
+    Default: "10.0.5.0/24"
+    Description: prod-ws-private-zoneB CIDR Block
+
+  prodwsprivatezoneCCIDRBlock:
+    Type: String
+    Default: "10.0.7.0/24"
+    Description: prod-ws-private-zoneC CIDR Block
+
+  prodwspubliczoneBCIDRBlock:
+    Type: String
+    Default: "10.0.4.0/24"
+    Description: prod-ws-public-zoneB CIDR Block
+
+  prodwspubliczoneCCIDRBlock:
+    Type: String
+    Default: "10.0.6.0/24"
+    Description: prod-ws-public-zoneC CIDR Block
+
+  testdbzoneBCIDRBlock:
+    Type: String
+    Default: "10.0.18.0/25"
+    Description: test-db-zoneB CIDR Block
+
+  testdbzoneCCIDRBlock:
+    Type: String
+    Default: "10.0.18.128/25"
+    Description: test-db-zoneC CIDR Block
+
+  proddmzprivatezoneBCIDRBlock:
+    Type: String
+    Default: "10.0.11.0/24"
+    Description: prod-dmz-private-zoneB CIDR Block
+
+  proddmzprivatezoneCCIDRBlock:
+    Type: String
+    Default: "10.0.13.0/24"
+    Description: prod-dmz-private-zoneC CIDR Block
+
+  natsubnetbCIDRBlock:
+    Type: String
+    Default: "10.0.50.0/25"
+    Description: nat_subnet_b CIDR Block
+
+  natsubnetcCIDRBlock:
+    Type: String
+    Default: "10.0.50.128/25"
+    Description: nat_subnet_c CIDR Block
+
+  stgwspubliczoneBCIDRBlock:
+    Type: String
+    Default: "10.0.20.0/24"
+    Description: stg-ws-public-zoneB CIDR Block
+
+  mgtzoneBCIDRBlock:
+    Type: String
+    Default: "10.0.0.0/25"
+    Description: mgt-zoneB CIDR Block
+
+  mgtzoneCCIDRBlock:
+    Type: String
+    Default: "10.0.0.128/25"
+    Description: mgt-zoneC CIDR Block
+
+  stgdmzpubliczoneBCIDRBlock:
+    Type: String
+    Default: "10.0.22.0/24"
+    Description: stg-dmz-public-zoneB CIDR Block
+
+  sftpdmzzoneBCIDRBlock:
+    Type: String
+    Default: "10.0.30.0/25"
+    Description: sftp-dmz-zoneB CIDR Block
+
+  sftpdmzzoneCCIDRBlock:
+    Type: String
+    Default: "10.0.30.128/25"
+    Description: sftp-dmz-zoneC CIDR Block
+
+  stgdmzprivatezoneBCIDRBlock:
+    Type: String
+    Default: "10.0.23.0/24"
+    Description: stg-dmz-private-zoneB CIDR Block
+
+  stgwsprivatezoneBCIDRBlock:
+    Type: String
+    Default: "10.0.21.0/24"
+    Description: stg-ws-private-zoneB CIDR Block
+
+
+Resources:
+#============================================================================================================
+#Create NAT zone B, EIP for it, and adding route to routing tables
+  NATzoneB:
+    DependsOn: myInternetGateway
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - EIPnatb
+        - AllocationId
+      SubnetId:
+        Ref: natsubnetb
+      Tags:
+        - Key: Name
+          Value: !Sub "${AccountName}-NAT-zone-B"
+  EIPnatb:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  RouteprodwsprivatezoneB:
+    Type: AWS::EC2::Route
+    DependsOn: NATzoneB
+    Properties:
+      RouteTableId:
+        Ref: rtbprodwsprivatezoneB
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NATzoneB
+
+  RouteproddmzprivatezoneB:
+    Type: AWS::EC2::Route
+    DependsOn: NATzoneB
+    Properties:
+      RouteTableId:
+        Ref: rtbproddmzprivatezoneB
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NATzoneB
+
+  RoutestgdmzprivatezoneB:
+    Type: AWS::EC2::Route
+    DependsOn: NATzoneB
+    Properties:
+      RouteTableId:
+        Ref: rtbstgdmzprivatezoneB
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NATzoneB
+
+  RoutestgwsprivatezoneB:
+    Type: AWS::EC2::Route
+    DependsOn: NATzoneB
+    Properties:
+      RouteTableId:
+        Ref: rtbstgwsprivatezoneB
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NATzoneB
+
+#Create NAT zone C, EIP for it, and adding route to routing tables
+  NATzoneC:
+    DependsOn: myInternetGateway
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - EIPnatc
+        - AllocationId
+      SubnetId:
+        Ref: natsubnetc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AccountName}-NAT-zone-C"
+  EIPnatc:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  RouteprodwsprivatezoneC:
+    Type: AWS::EC2::Route
+    DependsOn: NATzoneC
+    Properties:
+      RouteTableId:
+        Ref: rtbprodwsprivatezoneC
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NATzoneC
+
+  RouteproddmzprivatezoneC:
+    Type: AWS::EC2::Route
+    DependsOn: NATzoneC
+    Properties:
+      RouteTableId:
+        Ref: rtbproddmzprivatezoneC
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NATzoneC
+#============================================================================================================
+#Create 7 ROUTE TABLES prod-dmz-private-zoneC / stg-dmz-private-zoneB / prod-ws-private-zoneB / prod-dmz-private-zoneB / prod-ws-private-zoneC / stg-ws-private-zoneB / main route table
+  rtbproddmzprivatezoneC:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: myVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-rtb-prod-dmz-private-zoneC"
+
+  rtbstgdmzprivatezoneB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: myVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-rtb-stg-dmz-private-zoneB"
+
+  rtbprodwsprivatezoneB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: myVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-rtb-prod-ws-private-zoneB"
+
+  rtbproddmzprivatezoneB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: myVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-rtb-prod-dmz-private-zoneB"
+
+  rtbprodwsprivatezoneC:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: myVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-rtb-prod-ws-private-zoneC"
+
+  rtbstgwsprivatezoneB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: myVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-rtb-stg-ws-private-zoneB"
+#=======Main Route table=====================================================================================================
+  rtbmainroutetable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: myVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-rtb-main-route-table"
+
+  mydefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: myInternetGateway
+    Properties:
+      RouteTableId:
+        Ref: rtbmainroutetable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: myInternetGateway
+#============================================================================================================
+#Create VPC
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref myVPCCIDRBlock
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-vpc"
+#Create InternetGateway for VPC
+  myInternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}IG"
+#Attach Internet Gateway to VPC
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: myVPC
+      InternetGatewayId:
+        Ref: myInternetGateway
+
+#============================================================================================================
+#Create SUBNETs prod-db-zone B/C/D/E
+  proddbzoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref proddbzoneBCIDRBlock  #10.0.1.0/26
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-db-zoneB"
+
+  proddbzoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref proddbzoneCCIDRBlock #10.0.1.64/26
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-db-zoneC"
+
+  proddbzoneD:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref proddbzoneDCIDRBlock #10.0.1.128/26
+      AvailabilityZone: "us-east-1d"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-db-zoneD"
+
+  proddbzoneE:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref proddbzoneECIDRBlock #10.0.1.192/26
+      AvailabilityZone: "us-east-1e"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-db-zoneE"
+
+#Create SUBNETs prod-dmz-public-zone B/C
+  proddmzpubliczoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref proddmzpubliczoneBCIDRBlock #10.0.10.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-dmz-public-zoneB"
+
+  proddmzpubliczoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref proddmzpubliczoneCCIDRBlock #10.0.12.0/24
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-dmz-public-zoneC"
+
+#Create SUBNETs prod-ws-private-zone B/C
+  prodwsprivatezoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref prodwsprivatezoneBCIDRBlock #10.0.5.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-ws-private-zoneB"
+
+  prodwsprivatezoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref prodwsprivatezoneCCIDRBlock #10.0.7.0/24
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-ws-private-zoneC"
+
+#Create SUBNETs prod-ws-public-zone B/C
+  prodwspubliczoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref prodwspubliczoneBCIDRBlock #10.0.4.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-ws-public-zoneB"
+
+  prodwspubliczoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref prodwspubliczoneCCIDRBlock #10.0.6.0/24
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-ws-public-zoneC"
+
+#Create SUBNETs test-db-zone B/C
+  testdbzoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref testdbzoneBCIDRBlock #10.0.18.0/25
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-test-db-zoneB"
+
+  testdbzoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref testdbzoneCCIDRBlock #10.0.18.128/25
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-test-db-zoneC"
+
+#Create SUBNETs prod-dmz-private-zone B/C
+  proddmzprivatezoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref proddmzprivatezoneBCIDRBlock #10.0.11.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-dmz-private-zoneB"
+
+  proddmzprivatezoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref proddmzprivatezoneCCIDRBlock #10.0.13.0/24
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-prod-dmz-private-zoneC"
+
+#Create SUBNETs nat_subnet B/C
+  natsubnetb:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref natsubnetbCIDRBlock #10.0.50.0/25
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-nat_subnet_b"
+
+  natsubnetc:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref natsubnetcCIDRBlock #10.0.50.128/25
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-nat_subnet_c"
+
+#Create SUBNETs stg-ws-public-zone B
+  stgwspubliczoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref stgwspubliczoneBCIDRBlock #10.0.20.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-stg-ws-public-zoneB"
+
+#Create SUBNETs mgt-zone B/C
+  mgtzoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref mgtzoneBCIDRBlock #10.0.0.0/25
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-mgt-zoneB"
+
+  mgtzoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref mgtzoneCCIDRBlock #10.0.0.128/25
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-mgt-zoneC"
+
+#Create SUBNETs stg-dmz-public-zone B
+  stgdmzpubliczoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref stgdmzpubliczoneBCIDRBlock #10.0.22.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-stg-dmz-public-zoneB"
+
+#Create SUBNETs sftp-dmz-zone B/C
+  sftpdmzzoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref sftpdmzzoneBCIDRBlock #10.0.30.0/25
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-sftp-dmz-zoneB"
+
+  sftpdmzzoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref sftpdmzzoneCCIDRBlock #10.0.30.128/25
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-sftp-dmz-zoneC"
+
+#Create SUBNETs stg-dmz-private-zone B
+  stgdmzprivatezoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref stgdmzprivatezoneBCIDRBlock #10.0.23.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-stg-dmz-private-zoneB"
+
+#Create SUBNETs stg-ws-private-zone B
+  stgwsprivatezoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref stgwsprivatezoneBCIDRBlock #10.0.21.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: !Sub "${AccountName}-stg-ws-private-zoneB"
+#============================================================================================================
+
+#============================================================================================================
+#Associate all other subnets with main route table. (*except private subnets that have their own routing tables each)
+  mySubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: proddbzoneB
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: proddbzoneC
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: proddbzoneD
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation4:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: proddbzoneE
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation5:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: proddmzpubliczoneB
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation6:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: proddmzpubliczoneC
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation7:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: prodwspubliczoneB
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation8:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: prodwspubliczoneC
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation9:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: testdbzoneB
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation10:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: testdbzoneC
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation11:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: natsubnetb
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation12:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: natsubnetc
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation13:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: stgwspubliczoneB
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation14:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: mgtzoneB
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation15:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: mgtzoneC
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation16:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: stgdmzpubliczoneB
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation17:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: sftpdmzzoneB
+      RouteTableId:
+        Ref: rtbmainroutetable
+
+  mySubnetRouteTableAssociation18:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: sftpdmzzoneC
+      RouteTableId:
+        Ref: rtbmainroutetable
+#============================================================================================================
+#Associate private subnets with route TABLES
+  mySubnetRouteTableAssociation19:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: prodwsprivatezoneB
+      RouteTableId:
+        Ref: rtbprodwsprivatezoneB
+
+  mySubnetRouteTableAssociation20:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: proddmzprivatezoneC
+      RouteTableId:
+        Ref: rtbproddmzprivatezoneC
+
+  mySubnetRouteTableAssociation21:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: stgdmzprivatezoneB
+      RouteTableId:
+        Ref: rtbstgdmzprivatezoneB
+
+  mySubnetRouteTableAssociation22:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: prodwsprivatezoneC
+      RouteTableId:
+        Ref: rtbprodwsprivatezoneC
+
+  mySubnetRouteTableAssociation23:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: proddmzprivatezoneB
+      RouteTableId:
+        Ref: rtbproddmzprivatezoneB
+
+  mySubnetRouteTableAssociation24:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: stgwsprivatezoneB
+      RouteTableId:
+        Ref: rtbstgwsprivatezoneB
+#============================================================================================================

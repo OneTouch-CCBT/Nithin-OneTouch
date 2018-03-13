@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Stack for VPCs,Subnets,IG,NATs,EIPs,Route Tables,Tags, and necessary associations
+Resources:
+  EBapplication:
+    Type: "AWS::ElasticBeanstalk::Application"
+    Properties: 
+      ApplicationName: "SampleAWSElasticBeanstalkApplication"
+      Description: "AWS Elastic Beanstalk PHP Sample Application"
