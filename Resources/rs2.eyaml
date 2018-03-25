@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudTrail across all regions'
+Resources:
+  myDNS:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: liviero.xyz.
+      RecordSets:
+      - Name: mysite.liviero.xyz.
+        Type: A
+        AliasTarget:
+          HostedZoneId: Z117KPS5GTRQ2G
+          DNSName: full-samp-ha144fz3ns56.xprn9dz3e3.us-east-1.elasticbeanstalk.com
