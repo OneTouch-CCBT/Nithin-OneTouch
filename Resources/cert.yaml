@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'vpc, elasticbeanstalk'
+Resources:
+  mycert:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName:  www.liviero.xyz
+      DomainValidationOptions:
+      - DomainName:  www.liviero.xyz
+        ValidationDomain:  www.liviero.xyz
